@@ -3,7 +3,7 @@
     <fullName>FirstName__c</fullName>
     <externalId>false</externalId>
     <label>First Name</label>
-    <length>240</length>
+    <length>230</length>
     <required>false</required>
     <trackFeedHistory>false</trackFeedHistory>
     <trackTrending>false</trackTrending>
