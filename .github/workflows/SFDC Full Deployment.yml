@@ -1,0 +1,51 @@
+name: Salesforce CI/CD with Docker CLI
+
+on:
+  push:
+    branches:
+      - Dev
+      - QA
+  workflow_dispatch:
+    inputs:
+      run_tests:
+        description: "Run Apex tests?"
+        required: true
+        type: boolean
+        default: true
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    container:
+      image: salesforce/cli:latest-full
+
+    env:
+      TEST_FLAG: ${{ inputs.run_tests }}
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      # Authenticate based on branch
+      - name: Authenticate to Dev Org
+        if: github.ref == 'refs/heads/Dev'
+        run: |
+          echo "${{ secrets.DEV_SFDX_URL }}" > devAuth.txt
+          sf org login sfdx-url -f devAuth.txt -a DevOrg -s
+
+      - name: Authenticate to QA Org
+        if: github.ref == 'refs/heads/QA'
+        run: |
+          echo "${{ secrets.QA_SFDX_URL }}" > qaAuth.txt
+          sf org login sfdx-url -f qaAuth.txt -a QaOrg -s
+
+      # Deploy with or without tests
+      - name: Deploy to Salesforce
+        run: |
+          if [ "${TEST_FLAG}" = "true" ]; then
+            echo "Running tests during deploy..."
+            sf project deploy start -l RunLocalTests -w 60
+          else
+            echo "Deploying without tests..."
+            sf project deploy start -l NoTestRun -w 60
+          fi
