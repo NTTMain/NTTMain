@@ -28,13 +28,13 @@ jobs:
 
       # Authenticate based on branch
       - name: Authenticate to Dev Org
-        if: github.ref == 'refs/heads/dev'
+        if: github.ref == 'refs/heads/Dev'
         run: |
           echo "${{ secrets.DEV_SFDX_URL }}" > devAuth.txt
           sf org login sfdx-url -f devAuth.txt -a DevOrg -s
 
       - name: Authenticate to QA Org
-        if: github.ref == 'refs/heads/qa'
+        if: github.ref == 'refs/heads/QA'
         run: |
           echo "${{ secrets.QA_SFDX_URL }}" > qaAuth.txt
           sf org login sfdx-url -f qaAuth.txt -a QaOrg -s
