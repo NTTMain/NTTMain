@@ -6,6 +6,7 @@ on:
       - Dev
       - QA
   pull_request:
+  
     branches:
       - Dev
       - QA
@@ -39,7 +40,7 @@ jobs:
         if: github.ref == 'refs/heads/Dev' || github.base_ref == 'Dev'
         run: |
           echo "${{ secrets.DEV_SFDX_URL }}" > devAuth.txt
-          sf org login sfdx-url -f devAuth.txt -a DevOrg -s
+          sf org login sfdx-url -f devAuth.txt -a DevOrg -s  --source-dir force-app
 
       # Authenticate for QA
       - name: Authenticate to QA Org
