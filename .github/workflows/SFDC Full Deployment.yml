@@ -5,6 +5,10 @@ on:
     branches:
       - Dev
       - QA
+  pull_request:
+    branches:
+      - Dev
+      - QA
   workflow_dispatch:
     inputs:
       run_tests:
@@ -20,28 +24,46 @@ jobs:
       image: salesforce/cli:latest-full
 
     env:
-      TEST_FLAG: ${{ inputs.run_tests }}
+      TEST_FLAG: ${{ inputs.run_tests || 'true' }}
 
     steps:
       - name: Checkout Code
         uses: actions/checkout@v4
 
-      # Authenticate based on branch
+      # Identify branch
+      - name: Print Branch
+        run: echo "Branch is ${GITHUB_REF}"
+
+      # Authenticate for Dev
       - name: Authenticate to Dev Org
-        if: github.ref == 'refs/heads/Dev'
+        if: github.ref == 'refs/heads/Dev' || github.base_ref == 'Dev'
         run: |
           echo "${{ secrets.DEV_SFDX_URL }}" > devAuth.txt
           sf org login sfdx-url -f devAuth.txt -a DevOrg -s
 
+      # Authenticate for QA
       - name: Authenticate to QA Org
-        if: github.ref == 'refs/heads/QA'
+        if: github.ref == 'refs/heads/QA' || github.base_ref == 'QA'
         run: |
           echo "${{ secrets.QA_SFDX_URL }}" > qaAuth.txt
           sf org login sfdx-url -f qaAuth.txt -a QaOrg -s
 
-      # Deploy with or without tests
-      - name: Deploy to Salesforce
+      # Validation before merge (Pull Request)
+      - name: Validate Deployment (checkonly)
+        if: github.event_name == 'pull_request'
         run: |
+          echo "Running validation deployment (checkonly)..."
+          if [ "${TEST_FLAG}" = "true" ]; then
+            sf project deploy validate -l RunLocalTests -w 60
+          else
+            sf project deploy validate -l NoTestRun -w 60
+          fi
+
+      # Actual deployment (Push to Dev or QA)
+      - name: Deploy to Salesforce
+        if: github.event_name == 'push'
+        run: |
+          echo "Starting actual deployment..."
           if [ "${TEST_FLAG}" = "true" ]; then
             echo "Running tests during deploy..."
             sf project deploy start -l RunLocalTests -w 60
