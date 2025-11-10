@@ -1,10 +1,6 @@
-name: Salesforce CI/CD with Docker CLI
+name: Salesforce Validation (Check Only)
 
 on:
-  push:
-    branches:
-      - Dev
-      - QA
   pull_request:
     branches:
       - Dev
@@ -18,7 +14,7 @@ on:
         default: true
 
 jobs:
-  deploy:
+  validate:
     runs-on: ubuntu-latest
     container:
       image: salesforce/cli:latest-full
@@ -35,38 +31,26 @@ jobs:
 
       # 🔐 Authenticate for Dev Org
       - name: Authenticate to Dev Org
-        if: github.ref == 'refs/heads/Dev' || github.base_ref == 'Dev'
+        if: github.base_ref == 'Dev' || github.ref == 'refs/heads/Dev'
         run: |
           echo "${{ secrets.DEV_SFDX_URL }}" > devAuth.txt
           sf org login sfdx-url -f devAuth.txt -a DevOrg -s
 
       # 🔐 Authenticate for QA Org
       - name: Authenticate to QA Org
-        if: github.ref == 'refs/heads/QA' || github.base_ref == 'QA'
+        if: github.base_ref == 'QA' || github.ref == 'refs/heads/QA'
         run: |
           echo "${{ secrets.QA_SFDX_URL }}" > qaAuth.txt
           sf org login sfdx-url -f qaAuth.txt -a QaOrg -s
 
-      # 🧪 Validate Deployment on Pull Request (no merge)
-      - name: Validate Deployment (checkonly)
-        if: github.event_name == 'pull_request'
+      # 🧪 Validation Only (check-only deploy)
+      - name: Validate Deployment (No Merge)
         run: |
-          echo "Running validation deployment (checkonly)..."
+          echo "Running Salesforce validation (checkonly)..."
           if [ "${TEST_FLAG}" = "true" ]; then
+            echo "Running validation with local tests..."
             sf project deploy validate -l RunLocalTests -w 60
           else
+            echo "Running validation without tests..."
             sf project deploy validate -l NoTestRun -w 60
-          fi
-
-      # 🚀 Actual Deployment after Merge (Push Event)
-      - name: Deploy to Salesforce
-        if: github.event_name == 'push'
-        run: |
-          echo "Starting actual deployment..."
-          if [ "${TEST_FLAG}" = "true" ]; then
-            echo "Running tests during deploy..."
-            sf project deploy start -l RunLocalTests -w 60
-          else
-            echo "Deploying without tests..."
-            sf project deploy start -l NoTestRun -w 60
           fi
