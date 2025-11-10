@@ -55,9 +55,9 @@ jobs:
         run: |
           echo "Running validation deployment (checkonly)..."
           if [ "${TEST_FLAG}" = "true" ]; then
-            sf project deploy validate -l RunLocalTests -w 60
+            sf project deploy validate -l RunLocalTests -w 60 --source-dir force-app
           else
-            sf project deploy validate -l NoTestRun -w 60
+            sf project deploy validate -l NoTestRun -w 60 --source-dir force-app
           fi
 
       # Actual deployment (Push to Dev or QA)
