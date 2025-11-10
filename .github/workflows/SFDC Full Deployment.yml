@@ -6,7 +6,6 @@ on:
       - Dev
       - QA
   pull_request:
-  
     branches:
       - Dev
       - QA
@@ -31,25 +30,24 @@ jobs:
       - name: Checkout Code
         uses: actions/checkout@v4
 
-      # Identify branch
       - name: Print Branch
         run: echo "Branch is ${GITHUB_REF}"
 
-      # Authenticate for Dev
+      # 🔐 Authenticate for Dev Org
       - name: Authenticate to Dev Org
         if: github.ref == 'refs/heads/Dev' || github.base_ref == 'Dev'
         run: |
           echo "${{ secrets.DEV_SFDX_URL }}" > devAuth.txt
-          sf org login sfdx-url -f devAuth.txt -a DevOrg -s  --source-dir force-app
+          sf org login sfdx-url -f devAuth.txt -a DevOrg -s
 
-      # Authenticate for QA
+      # 🔐 Authenticate for QA Org
       - name: Authenticate to QA Org
         if: github.ref == 'refs/heads/QA' || github.base_ref == 'QA'
         run: |
           echo "${{ secrets.QA_SFDX_URL }}" > qaAuth.txt
           sf org login sfdx-url -f qaAuth.txt -a QaOrg -s
 
-      # Validation before merge (Pull Request)
+      # 🧪 Validate Deployment on Pull Request (no merge)
       - name: Validate Deployment (checkonly)
         if: github.event_name == 'pull_request'
         run: |
@@ -60,7 +58,7 @@ jobs:
             sf project deploy validate -l NoTestRun -w 60
           fi
 
-      # Actual deployment (Push to Dev or QA)
+      # 🚀 Actual Deployment after Merge (Push Event)
       - name: Deploy to Salesforce
         if: github.event_name == 'push'
         run: |
