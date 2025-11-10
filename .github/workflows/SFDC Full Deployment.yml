@@ -40,7 +40,7 @@ jobs:
         if: github.ref == 'refs/heads/Dev' || github.base_ref == 'Dev'
         run: |
           echo "${{ secrets.DEV_SFDX_URL }}" > devAuth.txt
-          sf org login sfdx-url -f devAuth.txt -a DevOrg -s  --source-dir force-app
+          sf org login sfdx-url -f devAuth.txt -a DevOrg -s 
 
       # Authenticate for QA
       - name: Authenticate to QA Org
