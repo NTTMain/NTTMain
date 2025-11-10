@@ -1,7 +1,12 @@
-name: Salesforce Validation (Check Only)
+name: Salesforce CI/CD with Docker CLI
 
 on:
+  push:
+    branches:
+      - Dev
+      - QA
   pull_request:
+  
     branches:
       - Dev
       - QA
@@ -14,7 +19,7 @@ on:
         default: true
 
 jobs:
-  validate:
+  deploy:
     runs-on: ubuntu-latest
     container:
       image: salesforce/cli:latest-full
@@ -26,31 +31,44 @@ jobs:
       - name: Checkout Code
         uses: actions/checkout@v4
 
+      # Identify branch
       - name: Print Branch
         run: echo "Branch is ${GITHUB_REF}"
 
-      # 🔐 Authenticate for Dev Org
+      # Authenticate for Dev
       - name: Authenticate to Dev Org
-        if: github.base_ref == 'Dev' || github.ref == 'refs/heads/Dev'
+        if: github.ref == 'refs/heads/Dev' || github.base_ref == 'Dev'
         run: |
           echo "${{ secrets.DEV_SFDX_URL }}" > devAuth.txt
-          sf org login sfdx-url -f devAuth.txt -a DevOrg -s
+          sf org login sfdx-url -f devAuth.txt -a DevOrg -s  --source-dir force-app
 
-      # 🔐 Authenticate for QA Org
+      # Authenticate for QA
       - name: Authenticate to QA Org
-        if: github.base_ref == 'QA' || github.ref == 'refs/heads/QA'
+        if: github.ref == 'refs/heads/QA' || github.base_ref == 'QA'
         run: |
           echo "${{ secrets.QA_SFDX_URL }}" > qaAuth.txt
           sf org login sfdx-url -f qaAuth.txt -a QaOrg -s
 
-      # 🧪 Validation Only (check-only deploy)
-      - name: Validate Deployment (No Merge)
+      # Validation before merge (Pull Request)
+      - name: Validate Deployment (checkonly)
+        if: github.event_name == 'pull_request'
         run: |
-          echo "Running Salesforce validation (checkonly)..."
+          echo "Running validation deployment (checkonly)..."
           if [ "${TEST_FLAG}" = "true" ]; then
-            echo "Running validation with local tests..."
             sf project deploy validate -l RunLocalTests -w 60
           else
-            echo "Running validation without tests..."
             sf project deploy validate -l NoTestRun -w 60
+          fi
+
+      # Actual deployment (Push to Dev or QA)
+      - name: Deploy to Salesforce
+        if: github.event_name == 'push'
+        run: |
+          echo "Starting actual deployment..."
+          if [ "${TEST_FLAG}" = "true" ]; then
+            echo "Running tests during deploy..."
+            sf project deploy start -l RunLocalTests -w 60
+          else
+            echo "Deploying without tests..."
+            sf project deploy start -l NoTestRun -w 60
           fi
